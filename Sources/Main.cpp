@@ -98,12 +98,12 @@ namespace {
 					*((float*)(data + 32)) = ships[2]->position.y();
 					*((float*)(data + 36)) = ships[2]->position.z();
 					// TODO: Halve send rate for congested clients
-					conn->send(data, 40);
+					conn->send(data, 40, false);
 				}
 				else {
 					unsigned char data[4];
 					*((int*)data) = 0 + 2 * inputLeft + inputRight;
-					conn->send(data, 4);
+					conn->send(data, 4, false);
 				}
 
 				sinceSend = sendRate;
