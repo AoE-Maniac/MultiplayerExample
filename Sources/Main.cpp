@@ -3,6 +3,7 @@
 #include <Kore/Log.h>
 #include <Kore/System.h>
 #include <Kore/Graphics/Graphics.h>
+#include <Kore/Input/Keyboard.h>
 #include <Kore/Network/Connection.h>
 
 #include "Engine/Renderer.h"
@@ -27,7 +28,29 @@ namespace {
 
 	double time;
 	int playerStates = 0;
+	int remoteInput[2];
 	Ship* ships[3];
+
+	bool inputLeft = false;
+	bool inputRight = false;
+
+	void keyDown(KeyCode code, wchar_t character) {
+		if (code == Key_Left) {
+			inputLeft = true;
+		}
+		else if (code == Key_Right) {
+			inputRight = true;
+		} 
+	}
+
+	void keyUp(KeyCode code, wchar_t character) {
+		if (code == Key_Left) {
+			inputLeft = false;
+		}
+		else if (code == Key_Right) {
+			inputRight = false;
+		}
+	}
 	
 	void update() {
 		double now = System::time();
@@ -39,7 +62,15 @@ namespace {
 			int got;
 			int id;
 			while ((got = conn->receive(buff, id)) > 0) {
-				playerStates = *(int*)buff;
+				if (isServer) {
+					remoteInput[id] = *(int*)buff;
+				}
+				else {
+					playerStates = *(int*)buff;
+					ships[0]->position = vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12)));
+					ships[1]->position = vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24)));
+					ships[2]->position = vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36)));
+				}
 			}
 		}
 
@@ -56,8 +87,22 @@ namespace {
 			sinceSend -= deltaT;
 			if (sinceSend < 0) {
 				if (isServer) {
-					unsigned char data[4];
+					unsigned char data[40];
 					*((int*)data) = playerStates;
+					*((float*)(data +  4)) = ships[0]->position.x();
+					*((float*)(data +  8)) = ships[0]->position.y();
+					*((float*)(data + 12)) = ships[0]->position.z();
+					*((float*)(data + 16)) = ships[1]->position.x();
+					*((float*)(data + 20)) = ships[1]->position.y();
+					*((float*)(data + 24)) = ships[1]->position.z();
+					*((float*)(data + 28)) = ships[2]->position.x();
+					*((float*)(data + 32)) = ships[2]->position.y();
+					*((float*)(data + 36)) = ships[2]->position.z();
+					conn->send(data, 40);
+				}
+				else {
+					unsigned char data[4];
+					*((int*)data) = 0 + 2 * inputLeft + inputRight;
 					conn->send(data, 4);
 				}
 
@@ -65,9 +110,9 @@ namespace {
 			}
 		}
 
-		ships[0]->update(deltaT, playerStates & 4);
-		ships[1]->update(deltaT, playerStates & 2);
-		ships[2]->update(deltaT, playerStates & 1);
+		ships[0]->update(deltaT, isServer && inputLeft, isServer & inputRight, playerStates & 4);
+		ships[1]->update(deltaT, isServer && (remoteInput[0] & 2), isServer && (remoteInput[0] & 1), playerStates & 2);
+		ships[2]->update(deltaT, isServer && (remoteInput[1] & 2), isServer && (remoteInput[1] & 1), playerStates & 1);
 
 		Graphics::begin();
 		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF7092BE, 1.0f);
@@ -112,6 +157,8 @@ int kore(int argc, char** argv) {
 		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -10.f, 10.f));
 
 	time = System::time();
+	remoteInput[0] = 0;
+	remoteInput[1] = 0;
 	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_r.png");
 	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_b.png");
 	ships[2] = new Ship(vec3( width / 3.f, -height / 2.f + 50.f, 0.f), "player_g.png");
@@ -124,6 +171,9 @@ int kore(int argc, char** argv) {
 		conn = new Connection(ownPort, 1);
 		conn->connect(connectUrl, connectPort);
 	}
+
+	Keyboard::the()->KeyDown = keyDown;
+	Keyboard::the()->KeyUp = keyUp;
 
 	Kore::System::setCallback(update);
 	Kore::System::start();

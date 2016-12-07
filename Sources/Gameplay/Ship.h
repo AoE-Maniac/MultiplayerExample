@@ -11,11 +11,11 @@ public:
 	Ship(Kore::vec3 startPos, const char* texture);
 	~Ship();
 
-	void update(float deltaTime, bool isVisible);
-
-private:
 	Kore::vec3 position;
 
+	void update(float deltaTime, bool left, bool right, bool isVisible);
+
+private:
 	RenderObject* renderObject;
 };
 
