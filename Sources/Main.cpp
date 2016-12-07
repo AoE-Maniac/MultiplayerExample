@@ -76,9 +76,10 @@ namespace {
 				else {
 					playerStates = *(int*)buff;
 					localId = *((int*)buff) >> 8;
-					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12))));
-					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24))));
-					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36))));
+					// TODO: Remove smoothen parameter once opponent prediction works
+					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12))), localId == 0);
+					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24))), localId == 1);
+					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36))), localId == 2);
 				}
 			}
 		}

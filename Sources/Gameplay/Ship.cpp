@@ -48,7 +48,7 @@ Ship::~Ship() {
 }
 
 vec3 Ship::getHistoricPosition(double time) {
-	vec3 result = position;
+	vec3 result = position + offset;
 
 	int offset = 0;
 	int pos = historyIndex;
@@ -88,19 +88,37 @@ void Ship::applyInput(double time, int input) {
 	updatePosition(position, history[historyIndex].input, elapsed);
 }
 
-void Ship::applyPosition(double time, vec3 remotePosition) {
+void Ship::applyPosition(double time, vec3 remotePosition, bool smoothen) {
 	// Suppress changes based on not yet transmitted input changes
 	double sinceChange = time - history[historyIndex].time;
 	if (sinceChange > 0 && sinceChange < 0.5f)
 		return;
 
 	// Calculate how much we are off
-	vec3 offset = remotePosition - getHistoricPosition(time);
-	position += offset;
+	vec3 diff = remotePosition - getHistoricPosition(time);
+	if (smoothen) {
+		offset = diff;
+	}
+	else {
+		position += diff;
+	}
 }
 
 void Ship::update(double deltaTime, bool isVisible) {
 	updatePosition(position, history[historyIndex].input, deltaTime);
+	
+	// Alternative method
+	//float change = 0.25 * deltaTime;
+	//position += offset * change;
+	//offset -= offset * change;
+	if (offset.squareLength() < deltaTime * deltaTime) {
+		position += offset;
+		offset = vec3(0, 0, 0);
+	}
+	else {
+		position += offset * (float)deltaTime;
+		offset -= offset * (float)deltaTime;
+	}
 
 	renderObject->isVisible = isVisible;
 	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) * mat4::Scale(5, 5, 5);
