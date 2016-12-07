@@ -33,6 +33,10 @@ namespace {
 	bool inputLeft = false;
 	bool inputRight = false;
 
+	int packInput(bool left, bool right) {
+		return 2 * inputLeft + inputRight;
+	}
+
 	void keyDown(KeyCode code, wchar_t character) {
 		if (code == Key_Left) {
 			inputLeft = true;
@@ -102,7 +106,7 @@ namespace {
 				}
 				else {
 					unsigned char data[4];
-					*((int*)data) = 0 + 2 * inputLeft + inputRight;
+					*((int*)data) = packInput(inputLeft, inputRight);
 					conn->send(data, 4, false);
 				}
 
@@ -112,7 +116,7 @@ namespace {
 
 		// TODO: Client prediction, server calculation based on ping
 		if (isServer) {
-			ships[0]->applyInput(System::time(), 0 + 2 * inputLeft + inputRight);
+			ships[0]->applyInput(System::time(), packInput(inputLeft, inputRight));
 		}
 		ships[0]->update(deltaT, playerStates & 4);
 		ships[1]->update(deltaT, playerStates & 2);

@@ -9,6 +9,18 @@ using namespace Kore;
 namespace {
 	const float speed = 100;
 	const int historySize = 10;
+
+	void unpackInput(int input, bool &left, bool &right) {
+		left = input & 2;
+		right = input & 1;
+	}
+
+	void updatePosition(vec3 &position, int input, double time) {
+		bool left, right;
+		unpackInput(input, left, right);
+		if (left) position -= vec3(time * speed, 0, 0);
+		if (right) position += vec3(time * speed, 0, 0);
+	}
 }
 
 Ship::Ship(vec3 startPos, const char* texture) {
@@ -35,10 +47,9 @@ void Ship::applyInput(double time, int input) {
 	if (input == history[historyIndex].input)
 		return;
 
-	// Undo recent movement
 	double elapsed = System::time() - time;
-	if (history[historyIndex].input & 2) position -= vec3(-elapsed * speed, 0, 0);
-	if (history[historyIndex].input & 1) position += vec3(-elapsed * speed, 0, 0);
+	// Undo recent movement
+	updatePosition(position, history[historyIndex].input, -elapsed);
 
 	// TODO: Use full history
 	historyIndex = (++historyIndex) % historySize;
@@ -46,13 +57,11 @@ void Ship::applyInput(double time, int input) {
 	history[historyIndex].time = time;
 
 	// Redo received movement
-	if (history[historyIndex].input & 2) position -= vec3(elapsed * speed, 0, 0);
-	if (history[historyIndex].input & 1) position += vec3(elapsed * speed, 0, 0);
+	updatePosition(position, history[historyIndex].input, elapsed);
 }
 
 void Ship::update(double deltaTime, bool isVisible) {
-	if (history[historyIndex].input & 2) position -= vec3(deltaTime * speed, 0, 0);
-	if (history[historyIndex].input & 1) position += vec3(deltaTime * speed, 0, 0);
+	updatePosition(position, history[historyIndex].input, deltaTime);
 
 	renderObject->isVisible = isVisible;
 	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) * mat4::Scale(5, 5, 5);
