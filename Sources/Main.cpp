@@ -21,7 +21,7 @@ namespace {
 	const char* connectUrl = "localhost";
 	int connectPort = 27734;
 
-	double sendRate = 0.2;
+	double sendRate = 0.05;
 	double sinceSend = 0;
 	Connection *conn;
 	unsigned char buff[256];
