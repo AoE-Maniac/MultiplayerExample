@@ -21,7 +21,7 @@ namespace {
 	const char* connectUrl = "localhost";
 	int connectPort = 27734;
 
-	bool sendCounter = 0;
+	int sendCounter = 0;
 	double sendRate = 0.05;
 	double sendRateCongested = 0.1;
 	double sinceSend = 0;
