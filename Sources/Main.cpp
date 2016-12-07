@@ -21,7 +21,9 @@ namespace {
 	const char* connectUrl = "localhost";
 	int connectPort = 27734;
 
+	bool sendCounter = 0;
 	double sendRate = 0.05;
+	double sendRateCongested = 0.1;
 	double sinceSend = 0;
 	Connection *conn;
 	unsigned char buff[256];
@@ -112,17 +114,24 @@ namespace {
 						if (conn->states[id] != Connection::Connected)
 							continue;
 
+						// Halve send rate for congested clients
+						if (conn->congests[id] && sendCounter != 0)
+							continue;
+
 						*((int*)data) = playerStates + ((id + 1) << 8);
-						// TODO: Halve send rate for congested clients
 						conn->send(data, 40, id, false);
 					}
 				}
 				else {
-					unsigned char data[4];
-					*((int*)data) = packInput(inputLeft, inputRight);
-					conn->send(data, 4, -1, false);
+					// Halve send rate if congested
+					if (conn->states[0] == Connection::Connected && (!conn->congests[0] || sendCounter == 0)) {
+						unsigned char data[4];
+						*((int*)data) = packInput(inputLeft, inputRight);
+						conn->send(data, 4, 0, false);
+					}
 				}
 
+				sendCounter = (++sendCounter) % (int)(sendRateCongested / sendRate);
 				sinceSend = sendRate;
 			}
 		}
@@ -134,6 +143,8 @@ namespace {
 		ships[0]->update(deltaT, playerStates & 4);
 		ships[1]->update(deltaT, playerStates & 2);
 		ships[2]->update(deltaT, playerStates & 1);
+
+		// TODO: Implement rocket fire and impact (reliable)
 
 		Graphics::begin();
 		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF7092BE, 1.0f);
