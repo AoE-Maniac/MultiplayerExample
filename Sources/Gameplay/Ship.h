@@ -13,9 +13,17 @@ public:
 
 	Kore::vec3 position;
 
-	void update(float deltaTime, bool left, bool right, bool isVisible);
+	void applyInput(double time, int input);
+	void update(double deltaTime, bool isVisible);
 
 private:
+	struct History {
+		double time;
+		int input;
+	};
+
+	int historyIndex;
+	History* history;
 	RenderObject* renderObject;
 };
 

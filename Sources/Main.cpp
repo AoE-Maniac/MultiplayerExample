@@ -28,7 +28,6 @@ namespace {
 
 	double time;
 	int playerStates = 0;
-	int remoteInput[2];
 	Ship* ships[3];
 
 	bool inputLeft = false;
@@ -63,7 +62,7 @@ namespace {
 			int id;
 			while ((got = conn->receive(buff, id)) > 0) {
 				if (isServer) {
-					remoteInput[id] = *(int*)buff;
+					ships[id]->applyInput(System::time() - conn->pings[id] / 2, *(int*)buff);
 				}
 				else {
 					playerStates = *(int*)buff;
@@ -98,6 +97,7 @@ namespace {
 					*((float*)(data + 28)) = ships[2]->position.x();
 					*((float*)(data + 32)) = ships[2]->position.y();
 					*((float*)(data + 36)) = ships[2]->position.z();
+					// TODO: Halve send rate for congested clients
 					conn->send(data, 40);
 				}
 				else {
@@ -110,9 +110,13 @@ namespace {
 			}
 		}
 
-		ships[0]->update(deltaT, isServer && inputLeft, isServer & inputRight, playerStates & 4);
-		ships[1]->update(deltaT, isServer && (remoteInput[0] & 2), isServer && (remoteInput[0] & 1), playerStates & 2);
-		ships[2]->update(deltaT, isServer && (remoteInput[1] & 2), isServer && (remoteInput[1] & 1), playerStates & 1);
+		// TODO: Client prediction, server calculation based on ping
+		if (isServer) {
+			ships[0]->applyInput(System::time(), 0 + 2 * inputLeft + inputRight);
+		}
+		ships[0]->update(deltaT, playerStates & 4);
+		ships[1]->update(deltaT, playerStates & 2);
+		ships[2]->update(deltaT, playerStates & 1);
 
 		Graphics::begin();
 		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF7092BE, 1.0f);
@@ -157,8 +161,6 @@ int kore(int argc, char** argv) {
 		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -10.f, 10.f));
 
 	time = System::time();
-	remoteInput[0] = 0;
-	remoteInput[1] = 0;
 	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_r.png");
 	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_b.png");
 	ships[2] = new Ship(vec3( width / 3.f, -height / 2.f + 50.f, 0.f), "player_g.png");
