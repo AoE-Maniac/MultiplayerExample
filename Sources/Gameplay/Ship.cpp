@@ -1,8 +1,12 @@
 #include "../pch.h"
 #include "Ship.h"
 
-#include "../Engine/Renderer.h"
+#include <cassert>
+
+#include <Kore/Log.h>
 #include <Kore/System.h>
+
+#include "../Engine/Renderer.h"
 
 using namespace Kore;
 
@@ -43,6 +47,28 @@ Ship::~Ship() {
 	// TODO: Remove and delete render object
 }
 
+vec3 Ship::getHistoricPosition(double time) {
+	vec3 result = position;
+
+	int offset = 0;
+	int pos = historyIndex;
+	double lastTime = System::time();
+	// Fully revert all inputs after the time
+	while (time < history[pos].time) {
+		updatePosition(result, history[pos].input, -(lastTime - history[pos].time));
+		
+		lastTime = history[pos].time;
+		offset++;
+		pos = (historyIndex - offset) % historySize;
+
+		assert(offset < historySize);
+	}
+	// Partly revert the last inputs before the time
+	updatePosition(result, history[pos].input, -(lastTime - time));
+	
+	return result;
+}
+
 void Ship::applyInput(double time, int input) {
 	if (input == history[historyIndex].input)
 		return;
@@ -50,14 +76,22 @@ void Ship::applyInput(double time, int input) {
 	double elapsed = System::time() - time;
 	// Undo recent movement
 	updatePosition(position, history[historyIndex].input, -elapsed);
+	log(LogLevel::Info, "rolled back %f", elapsed);
 
-	// TODO: Use full history
+	// Since we only get a time offset based on the ping there is no way to identify stray packets
+	// This means that it is sufficient to use only the most recent input and not the full history
 	historyIndex = (++historyIndex) % historySize;
 	history[historyIndex].input = input;
 	history[historyIndex].time = time;
 
 	// Redo received movement
 	updatePosition(position, history[historyIndex].input, elapsed);
+}
+
+void Ship::applyPosition(double time, vec3 remotePosition) {
+	// Calculate how much we are off
+	vec3 offset = remotePosition - getHistoricPosition(time);
+	position += offset;
 }
 
 void Ship::update(double deltaTime, bool isVisible) {

@@ -28,6 +28,7 @@ namespace {
 
 	double time;
 	int playerStates = 0;
+	int localId = 0;
 	Ship* ships[3];
 
 	bool inputLeft = false;
@@ -65,14 +66,19 @@ namespace {
 			int got;
 			int id;
 			while ((got = conn->receive(buff, id)) > 0) {
+				// Information is assumed to be half the ping old
+				double eventTime = System::time() - conn->pings[id] / 2;
 				if (isServer) {
-					ships[id]->applyInput(System::time() - conn->pings[id] / 2, *(int*)buff);
+					ships[id + 1]->applyInput(eventTime, *(int*)buff);
+
+					//log(LogLevel::Info, "ping %f", conn->pings[id]);
 				}
 				else {
 					playerStates = *(int*)buff;
-					ships[0]->position = vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12)));
-					ships[1]->position = vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24)));
-					ships[2]->position = vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36)));
+					localId = *((int*)buff) >> 8;
+					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12))));
+					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24))));
+					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36))));
 				}
 			}
 		}
@@ -90,10 +96,10 @@ namespace {
 			sinceSend -= deltaT;
 			if (sinceSend < 0) {
 				if (isServer) {
+					// TODO: Send input for opponent prediction
 					unsigned char data[40];
-					*((int*)data) = playerStates;
-					*((float*)(data +  4)) = ships[0]->position.x();
-					*((float*)(data +  8)) = ships[0]->position.y();
+					*((float*)(data + 4)) = ships[0]->position.x();
+					*((float*)(data + 8)) = ships[0]->position.y();
 					*((float*)(data + 12)) = ships[0]->position.z();
 					*((float*)(data + 16)) = ships[1]->position.x();
 					*((float*)(data + 20)) = ships[1]->position.y();
@@ -101,22 +107,28 @@ namespace {
 					*((float*)(data + 28)) = ships[2]->position.x();
 					*((float*)(data + 32)) = ships[2]->position.y();
 					*((float*)(data + 36)) = ships[2]->position.z();
-					// TODO: Halve send rate for congested clients
-					conn->send(data, 40, false);
+					for (int id = 0; id < conn->maxConns; ++id) {
+						if (conn->states[id] != Connection::Connected)
+							continue;
+
+						*((int*)data) = playerStates + ((id + 1) << 8);
+						// TODO: Halve send rate for congested clients
+						conn->send(data, 40, id, false);
+					}
 				}
 				else {
 					unsigned char data[4];
 					*((int*)data) = packInput(inputLeft, inputRight);
-					conn->send(data, 4, false);
+					conn->send(data, 4, -1, false);
 				}
 
 				sinceSend = sendRate;
 			}
 		}
 
-		// TODO: Client prediction, server calculation based on ping
-		if (isServer) {
-			ships[0]->applyInput(System::time(), packInput(inputLeft, inputRight));
+		// Client prediction
+		if (localId >= 0) {
+			ships[localId]->applyInput(System::time(), packInput(inputLeft, inputRight));
 		}
 		ships[0]->update(deltaT, playerStates & 4);
 		ships[1]->update(deltaT, playerStates & 2);
@@ -138,6 +150,7 @@ int kore(int argc, char** argv) {
 	}
 	if (argc > 3) {
 		isServer = false;
+		localId = -1;
 		connectUrl = argv[2];
 		connectPort = strtol(argv[3], NULL, 10);
 	}

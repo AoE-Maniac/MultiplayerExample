@@ -14,6 +14,7 @@ public:
 	Kore::vec3 position;
 
 	void applyInput(double time, int input);
+	void applyPosition(double time, Kore::vec3 remotePosition);
 	void update(double deltaTime, bool isVisible);
 
 private:
@@ -25,5 +26,6 @@ private:
 	int historyIndex;
 	History* history;
 	RenderObject* renderObject;
+	Kore::vec3 Ship::getHistoricPosition(double time);
 };
 
