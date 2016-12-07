@@ -72,16 +72,17 @@ namespace {
 				double eventTime = System::time() - conn->pings[id] / 2;
 				if (isServer) {
 					ships[id + 1]->applyInput(eventTime, *(int*)buff);
-
-					//log(LogLevel::Info, "ping %f", conn->pings[id]);
 				}
 				else {
 					playerStates = *(int*)buff;
 					localId = *((int*)buff) >> 8;
-					// TODO: Remove smoothen parameter once opponent prediction works
-					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12))), localId == 0);
-					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24))), localId == 1);
-					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36))), localId == 2);
+					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12))));
+					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24))));
+					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36))));
+					// For opponent prediction
+					ships[0]->applyInput(eventTime,*((int*)(buff + 40)));
+					if (localId != 1) ships[1]->applyInput(eventTime, *((int*)(buff + 44)));
+					if (localId != 2) ships[2]->applyInput(eventTime, *((int*)(buff + 48)));
 				}
 			}
 		}
@@ -99,8 +100,7 @@ namespace {
 			sinceSend -= deltaT;
 			if (sinceSend < 0) {
 				if (isServer) {
-					// TODO: Send input for opponent prediction
-					unsigned char data[40];
+					unsigned char data[52];
 					*((float*)(data + 4)) = ships[0]->position.x();
 					*((float*)(data + 8)) = ships[0]->position.y();
 					*((float*)(data + 12)) = ships[0]->position.z();
@@ -110,6 +110,9 @@ namespace {
 					*((float*)(data + 28)) = ships[2]->position.x();
 					*((float*)(data + 32)) = ships[2]->position.y();
 					*((float*)(data + 36)) = ships[2]->position.z();
+					*((int*)(data + 40)) = ships[0]->getCurrentInput();
+					*((int*)(data + 44)) = ships[1]->getCurrentInput();
+					*((int*)(data + 48)) = ships[2]->getCurrentInput();
 					for (int id = 0; id < conn->maxConns; ++id) {
 						if (conn->states[id] != Connection::Connected)
 							continue;
@@ -119,7 +122,7 @@ namespace {
 							continue;
 
 						*((int*)data) = playerStates + ((id + 1) << 8);
-						conn->send(data, 40, id, false);
+						conn->send(data, 52, id, false);
 					}
 				}
 				else {

@@ -13,8 +13,9 @@ public:
 
 	Kore::vec3 position;
 
+	int getCurrentInput();
 	void applyInput(double time, int input);
-	void applyPosition(double time, Kore::vec3 remotePosition, bool smoothen);
+	void applyPosition(double time, Kore::vec3 remotePosition);
 	void update(double deltaTime, bool isVisible);
 
 private:

@@ -69,6 +69,10 @@ vec3 Ship::getHistoricPosition(double time) {
 	return result;
 }
 
+int Ship::getCurrentInput() {
+	return history[historyIndex].input;
+}
+
 void Ship::applyInput(double time, int input) {
 	if (input == history[historyIndex].input)
 		return;
@@ -88,7 +92,7 @@ void Ship::applyInput(double time, int input) {
 	updatePosition(position, history[historyIndex].input, elapsed);
 }
 
-void Ship::applyPosition(double time, vec3 remotePosition, bool smoothen) {
+void Ship::applyPosition(double time, vec3 remotePosition) {
 	// Suppress changes based on not yet transmitted input changes
 	double sinceChange = time - history[historyIndex].time;
 	if (sinceChange > 0 && sinceChange < 0.5f)
@@ -96,12 +100,8 @@ void Ship::applyPosition(double time, vec3 remotePosition, bool smoothen) {
 
 	// Calculate how much we are off
 	vec3 diff = remotePosition - getHistoricPosition(time);
-	if (smoothen) {
-		offset = diff;
-	}
-	else {
-		position += diff;
-	}
+	offset = diff;
+	// For immediate correction: position += diff;
 }
 
 void Ship::update(double deltaTime, bool isVisible) {
