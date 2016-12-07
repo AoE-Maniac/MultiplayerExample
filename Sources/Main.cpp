@@ -35,26 +35,33 @@ namespace {
 
 	bool inputLeft = false;
 	bool inputRight = false;
+	bool inputFire = false;
 
 	int packInput(bool left, bool right) {
-		return 2 * inputLeft + inputRight;
+		return 4 * inputFire + 2 * inputLeft + inputRight;
 	}
 
 	void keyDown(KeyCode code, wchar_t character) {
-		if (code == Key_Left) {
+		if (code == Key_A) {
 			inputLeft = true;
 		}
-		else if (code == Key_Right) {
+		else if (code == Key_D) {
 			inputRight = true;
-		} 
+		}
+		else if (code == Key_Space) {
+			inputFire = true;
+		}
 	}
 
 	void keyUp(KeyCode code, wchar_t character) {
-		if (code == Key_Left) {
+		if (code == Key_A) {
 			inputLeft = false;
 		}
-		else if (code == Key_Right) {
+		else if (code == Key_D) {
 			inputRight = false;
+		}
+		else if (code == Key_Space) {
+			inputFire = false;
 		}
 	}
 	
