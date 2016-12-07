@@ -89,6 +89,11 @@ void Ship::applyInput(double time, int input) {
 }
 
 void Ship::applyPosition(double time, vec3 remotePosition) {
+	// Suppress changes based on not yet transmitted input changes
+	double sinceChange = time - history[historyIndex].time;
+	if (sinceChange > 0 && sinceChange < 0.5f)
+		return;
+
 	// Calculate how much we are off
 	vec3 offset = remotePosition - getHistoricPosition(time);
 	position += offset;
