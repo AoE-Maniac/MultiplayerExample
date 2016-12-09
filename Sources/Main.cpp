@@ -7,6 +7,7 @@
 #include <Kore/Network/Connection.h>
 
 #include "Engine/Renderer.h"
+#include "Gameplay/Rockets.h"
 #include "Gameplay/Ship.h"
 
 using namespace Kore;
@@ -102,6 +103,20 @@ namespace {
 			playerStates = 0;
 		}
 
+		// Update state
+		{
+			// Client prediction
+			if (localId >= 0) {
+				ships[localId]->applyInput(System::time(), packInput(inputLeft, inputRight));
+			}
+
+			ships[0]->update(deltaT, playerStates & 4);
+			ships[1]->update(deltaT, playerStates & 2);
+			ships[2]->update(deltaT, playerStates & 1);
+
+			updateRockets(deltaT);
+		}
+
 		// Send data
 		{
 			sinceSend -= deltaT;
@@ -145,14 +160,6 @@ namespace {
 				sinceSend = sendRate;
 			}
 		}
-
-		// Client prediction
-		if (localId >= 0) {
-			ships[localId]->applyInput(System::time(), packInput(inputLeft, inputRight));
-		}
-		ships[0]->update(deltaT, playerStates & 4);
-		ships[1]->update(deltaT, playerStates & 2);
-		ships[2]->update(deltaT, playerStates & 1);
 
 		// TODO: Implement rocket fire and impact (reliable)
 
@@ -198,12 +205,14 @@ int kore(int argc, char** argv) {
 	vec3 cameraUp = vec3(0, 1, 0);
 	initRenderer(mat4::lookAlong(cameraDir, cameraPos, cameraUp),
 		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -10.f, 10.f));
-
+	
 	time = System::time();
 	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_r.png");
 	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_b.png");
 	ships[2] = new Ship(vec3( width / 3.f, -height / 2.f + 50.f, 0.f), "player_g.png");
 	
+	initRockets();
+
 	if (isServer) {
 		conn = new Connection(ownPort, 2);
 		conn->listen();

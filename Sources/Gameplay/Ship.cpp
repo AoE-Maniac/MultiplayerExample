@@ -7,23 +7,26 @@
 #include <Kore/System.h>
 
 #include "../Engine/Renderer.h"
+#include "Rockets.h"
 
 using namespace Kore;
 
 namespace {
-	const float speed = 100;
-	const int historySize = 10;
+	const float SPEED = 100;
+	const float FIRERATE = 1.f;
+	const int HISTORYSIZE = 10;
 
-	void unpackInput(int input, bool &left, bool &right) {
+	float fireCooldown = 0.f;
+
+	void unpackInput(int input, bool &left, bool &right, bool &fire) {
+		fire = input & 4;
 		left = input & 2;
 		right = input & 1;
 	}
 
-	void updatePosition(vec3 &position, int input, double time) {
-		bool left, right;
-		unpackInput(input, left, right);
-		if (left) position -= vec3(time * speed, 0, 0);
-		if (right) position += vec3(time * speed, 0, 0);
+	void updatePosition(vec3 &position, bool left, bool right, double time) {
+		if (left) position -= vec3(time * SPEED, 0, 0);
+		if (right) position += vec3(time * SPEED, 0, 0);
 	}
 }
 
@@ -34,10 +37,10 @@ Ship::Ship(vec3 startPos, const char* texture) {
 	renderObject->isVisible = false;
 
 	historyIndex = 0;
-	history = new History[historySize];
+	history = new History[HISTORYSIZE];
 	history[0].time = System::time();
 	history[0].input = 0;
-	for (int i = 1; i < historySize; ++i) {
+	for (int i = 1; i < HISTORYSIZE; ++i) {
 		history[i].time = -1;
 	}
 }
@@ -50,21 +53,24 @@ Ship::~Ship() {
 vec3 Ship::getHistoricPosition(double time) {
 	vec3 result = position + offset;
 
+	bool left, right, fire;
 	int offset = 0;
 	int pos = historyIndex;
 	double lastTime = System::time();
 	// Fully revert all inputs after the time
 	while (time < history[pos].time) {
-		updatePosition(result, history[pos].input, -(lastTime - history[pos].time));
+		unpackInput(history[pos].input, left, right, fire);
+		updatePosition(result, left, right, -(lastTime - history[pos].time));
 		
 		lastTime = history[pos].time;
 		offset++;
-		pos = (historyIndex - offset) % historySize;
+		pos = (historyIndex - offset) % HISTORYSIZE;
 
-		assert(offset < historySize);
+		assert(offset < HISTORYSIZE);
 	}
 	// Partly revert the last inputs before the time
-	updatePosition(result, history[pos].input, -(lastTime - time));
+	unpackInput(history[pos].input, left, right, fire);
+	updatePosition(result, left, right, -(lastTime - time));
 	
 	return result;
 }
@@ -77,19 +83,22 @@ void Ship::applyInput(double time, int input) {
 	if (input == history[historyIndex].input)
 		return;
 
+	bool left, right, fire;
 	double elapsed = System::time() - time;
 	// Undo recent movement
-	updatePosition(position, history[historyIndex].input, -elapsed);
+	unpackInput(history[historyIndex].input, left, right, fire);
+	updatePosition(position, left, right, -elapsed);
 	log(LogLevel::Info, "rolled back %f", elapsed);
 
 	// Since we only get a time offset based on the ping there is no way to identify stray packets
 	// This means that it is sufficient to use only the most recent input and not the full history
-	historyIndex = (++historyIndex) % historySize;
+	historyIndex = (++historyIndex) % HISTORYSIZE;
 	history[historyIndex].input = input;
 	history[historyIndex].time = time;
 
 	// Redo received movement
-	updatePosition(position, history[historyIndex].input, elapsed);
+	unpackInput(history[historyIndex].input, left, right, fire);
+	updatePosition(position, left, right, elapsed);
 }
 
 void Ship::applyPosition(double time, vec3 remotePosition) {
@@ -105,8 +114,17 @@ void Ship::applyPosition(double time, vec3 remotePosition) {
 }
 
 void Ship::update(double deltaTime, bool isVisible) {
-	updatePosition(position, history[historyIndex].input, deltaTime);
-	
+	bool left, right, fire;
+	unpackInput(history[historyIndex].input, left, right, fire);
+
+	updatePosition(position, left, right, deltaTime);
+
+	fireCooldown -= deltaTime;
+	if (fire && fireCooldown <= 0) {
+		fireRocket(position);
+		fireCooldown = FIRERATE;
+	}
+
 	// Alternative method
 	//float change = 0.25 * deltaTime;
 	//position += offset * change;

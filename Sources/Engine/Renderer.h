@@ -6,6 +6,7 @@
 struct Mesh;
 
 struct RenderObject {
+	int id;
 	bool isVisible;
 	Kore::mat4 M;
 	Mesh* mesh;
