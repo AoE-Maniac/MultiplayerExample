@@ -33,7 +33,7 @@ namespace {
 Ship::Ship(vec3 startPos, const char* texture) {
 	position = startPos;
 	
-	renderObject = addRenderObject(mat4::Translation(position.x(), position.y(), position.z()), "rocket.obj", texture);
+	renderObject = addRenderObject(mat4::Translation(position.x(), position.y(), position.z()), "fighter.obj", texture);
 	renderObject->isVisible = false;
 
 	historyIndex = 0;
@@ -139,5 +139,5 @@ void Ship::update(double deltaTime, bool isVisible) {
 	}
 
 	renderObject->isVisible = isVisible;
-	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) * mat4::Scale(5, 5, 5);
+	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) * mat4::RotationY(pi * 0.5f) * mat4::Scale(5, 5, 5);
 }
