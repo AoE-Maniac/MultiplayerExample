@@ -14,9 +14,11 @@ using namespace Kore;
 namespace {
 	const float SPEED = 100;
 	const float FIRERATE = 1.f;
+	const vec3 POS_OFFSET = vec3(25.f, 0.f, 0.f);
 	const int HISTORYSIZE = 10;
 
 	float fireCooldown = 0.f;
+	bool altFire = false;
 
 	void unpackInput(int input, bool &left, bool &right, bool &fire) {
 		fire = input & 4;
@@ -121,8 +123,10 @@ void Ship::update(double deltaTime, bool isVisible) {
 
 	fireCooldown -= deltaTime;
 	if (fire && fireCooldown <= 0) {
-		fireRocket(position);
+		if (altFire) fireRocket(position + POS_OFFSET);
+		else fireRocket(position - POS_OFFSET);
 		fireCooldown = FIRERATE;
+		altFire = !altFire;
 	}
 
 	// Alternative method
