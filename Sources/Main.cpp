@@ -38,8 +38,8 @@ namespace {
 	bool inputRight = false;
 	bool inputFire = false;
 
-	int packInput(bool left, bool right) {
-		return 4 * inputFire + 2 * inputLeft + inputRight;
+	int packInput(bool left, bool right, bool fire) {
+		return 4 * fire + 2 * left + right;
 	}
 
 	void keyDown(KeyCode code, wchar_t character) {
@@ -107,7 +107,7 @@ namespace {
 		{
 			// Client prediction
 			if (localId >= 0) {
-				ships[localId]->applyInput(System::time(), packInput(inputLeft, inputRight));
+				ships[localId]->applyInput(System::time(), packInput(inputLeft, inputRight, inputFire));
 			}
 
 			ships[0]->update(deltaT, playerStates & 4);
@@ -151,7 +151,7 @@ namespace {
 					// Halve send rate if congested
 					if (conn->states[0] == Connection::Connected && (!conn->congests[0] || sendCounter == 0)) {
 						unsigned char data[4];
-						*((int*)data) = packInput(inputLeft, inputRight);
+						*((int*)data) = packInput(inputLeft, inputRight, inputFire);
 						conn->send(data, 4, 0, false);
 					}
 				}
