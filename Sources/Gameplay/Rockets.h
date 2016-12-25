@@ -5,5 +5,5 @@
 void initRockets();
 void deleteRockets();
 
-void fireRocket(Kore::vec3 pos);
+int fireRocket(Kore::vec3 pos);
 void updateRockets(float deltaTime);

@@ -9,6 +9,7 @@ using namespace Kore;
 
 namespace {
 	struct Rocket {
+		int id;
 		vec3 pos;
 		RenderObject* renderObject;
 	};
@@ -17,11 +18,15 @@ namespace {
 	const float SCALING = 3.f;
 	const float SPEED = 100.f;
 
+	int lastId;
 	int currRockets;
 	Rocket* rockets;
 }
 
 void initRockets() {
+	lastId = 0;
+	currRockets = 0;
+
 	rockets = new Rocket[MAX_ROCKETS];
 	for (int i = 0; i < MAX_ROCKETS; ++i) {
 		rockets[i].renderObject = addRenderObject(mat4::Identity(), "rocket.obj", "rocket.png");
@@ -33,14 +38,18 @@ void deleteRockets() {
 	delete[] rockets;
 }
 
-void fireRocket(vec3 pos) {
+int fireRocket(vec3 pos) {
 	assert(currRockets < MAX_ROCKETS);
 
 	if (currRockets < MAX_ROCKETS) {
+		rockets[currRockets].id = lastId++;
 		rockets[currRockets].pos = pos;
 		rockets[currRockets].renderObject->isVisible = true;
 		++currRockets;
+
+		return rockets[currRockets - 1].id;
 	}
+	return -1;
 }
 
 void updateRockets(float deltaT) {
