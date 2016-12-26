@@ -115,7 +115,9 @@ void Ship::applyPosition(double time, vec3 remotePosition) {
 	// For immediate correction: position += diff;
 }
 
-void Ship::update(double deltaTime, bool isVisible) {
+bool Ship::update(double deltaTime, bool isVisible, vec3 &firePos) {
+	bool firing = false;
+
 	bool left, right, fire;
 	unpackInput(history[historyIndex].input, left, right, fire);
 
@@ -123,10 +125,11 @@ void Ship::update(double deltaTime, bool isVisible) {
 
 	fireCooldown -= deltaTime;
 	if (fire && fireCooldown <= 0) {
-		if (altFire) fireRocket(position + POS_OFFSET);
-		else fireRocket(position - POS_OFFSET);
+		if (altFire) firePos = position + POS_OFFSET;
+		else firePos = position - POS_OFFSET;
 		fireCooldown = FIRERATE;
 		altFire = !altFire;
+		firing = true;
 	}
 
 	// Alternative method
@@ -144,4 +147,6 @@ void Ship::update(double deltaTime, bool isVisible) {
 
 	renderObject->isVisible = isVisible;
 	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) * mat4::RotationY(pi * 0.5f) * mat4::Scale(5, 5, 5);
+
+	return firing;
 }

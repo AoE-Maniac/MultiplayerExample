@@ -96,6 +96,7 @@ namespace {
 					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff + 12)), *((float*)(buff + 16)), *((float*)(buff + 20))));
 					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 24)), *((float*)(buff + 28)), *((float*)(buff + 32))));
 					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 36)), *((float*)(buff + 40)), *((float*)(buff + 44))));
+					
 					// For opponent prediction
 					ships[0]->applyInput(eventTime,*((int*)(buff + 48)));
 					if (localId != 1) ships[1]->applyInput(eventTime, *((int*)(buff + 52)));
@@ -106,7 +107,7 @@ namespace {
 
 		// Updated player states
 		if (isServer) {
-			playerStates = 4 + 2 * (conn->states[0] == Connection::Connected) + (conn->states[1] == Connection::Connected);
+			playerStates = 4 * (conn->states[1] == Connection::Connected) + 2 * (conn->states[0] == Connection::Connected) + 1;
 		}
 		else if (conn->states[0] != Connection::Connected) {
 			playerStates = 0;
@@ -119,9 +120,12 @@ namespace {
 				ships[localId]->applyInput(System::time(), packInput(inputLeft, inputRight, inputFire));
 			}
 
-			ships[0]->update(deltaT, playerStates & 4);
-			ships[1]->update(deltaT, playerStates & 2);
-			ships[2]->update(deltaT, playerStates & 1);
+			vec3 firePos;
+			for (int i = 0; i < 3; i++) {
+				if (ships[i]->update(deltaT, playerStates & (1 << i), firePos)) {
+					fireRocket(firePos);
+				}
+			}
 
 			updateRockets(deltaT);
 		}

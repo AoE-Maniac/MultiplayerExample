@@ -16,7 +16,7 @@ public:
 	int getCurrentInput();
 	void applyInput(double time, int input);
 	void applyPosition(double time, Kore::vec3 remotePosition);
-	void update(double deltaTime, bool isVisible);
+	bool update(double deltaTime, bool isVisible, Kore::vec3 &firePos);
 
 private:
 	struct History {
