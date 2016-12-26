@@ -90,7 +90,7 @@ void Ship::applyInput(double time, int input) {
 	// Undo recent movement
 	unpackInput(history[historyIndex].input, left, right, fire);
 	updatePosition(position, left, right, -elapsed);
-	log(LogLevel::Info, "rolled back %f", elapsed);
+	//log(LogLevel::Info, "rolled back %f", elapsed);
 
 	// Since we only get a time offset based on the ping there is no way to identify stray packets
 	// This means that it is sufficient to use only the most recent input and not the full history

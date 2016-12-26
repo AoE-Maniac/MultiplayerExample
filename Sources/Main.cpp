@@ -30,6 +30,8 @@ namespace {
 	unsigned char buff[256];
 
 	double time;
+	double serverOffsetAvg = 0;
+	double serverOffsetNum = 0;
 	int playerStates = 0;
 	int localId = 0;
 	Ship* ships[3];
@@ -84,13 +86,20 @@ namespace {
 				else {
 					playerStates = *(int*)buff;
 					localId = *((int*)buff) >> 8;
-					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff +  4)), *((float*)(buff +  8)), *((float*)(buff + 12))));
-					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 16)), *((float*)(buff + 20)), *((float*)(buff + 24))));
-					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 28)), *((float*)(buff + 32)), *((float*)(buff + 36))));
+
+					double serverTime = *((double*)(buff + 4)) + conn->pings[id] / 2;
+					double serverOffset = time - serverTime;
+					serverOffsetNum++;
+					serverOffsetAvg = serverOffsetAvg + (serverOffset - serverOffsetAvg) / serverOffsetNum; // Incremental average
+					log(LogLevel::Info, "Serveroffset: %f", serverOffsetAvg);
+
+					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff + 12)), *((float*)(buff + 16)), *((float*)(buff + 20))));
+					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 24)), *((float*)(buff + 28)), *((float*)(buff + 32))));
+					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 36)), *((float*)(buff + 40)), *((float*)(buff + 44))));
 					// For opponent prediction
-					ships[0]->applyInput(eventTime,*((int*)(buff + 40)));
-					if (localId != 1) ships[1]->applyInput(eventTime, *((int*)(buff + 44)));
-					if (localId != 2) ships[2]->applyInput(eventTime, *((int*)(buff + 48)));
+					ships[0]->applyInput(eventTime,*((int*)(buff + 48)));
+					if (localId != 1) ships[1]->applyInput(eventTime, *((int*)(buff + 52)));
+					if (localId != 2) ships[2]->applyInput(eventTime, *((int*)(buff + 56)));
 				}
 			}
 		}
@@ -122,19 +131,20 @@ namespace {
 			sinceSend -= deltaT;
 			if (sinceSend < 0) {
 				if (isServer) {
-					unsigned char data[52];
-					*((float*)(data + 4)) = ships[0]->position.x();
-					*((float*)(data + 8)) = ships[0]->position.y();
-					*((float*)(data + 12)) = ships[0]->position.z();
-					*((float*)(data + 16)) = ships[1]->position.x();
-					*((float*)(data + 20)) = ships[1]->position.y();
-					*((float*)(data + 24)) = ships[1]->position.z();
-					*((float*)(data + 28)) = ships[2]->position.x();
-					*((float*)(data + 32)) = ships[2]->position.y();
-					*((float*)(data + 36)) = ships[2]->position.z();
-					*((int*)(data + 40)) = ships[0]->getCurrentInput();
-					*((int*)(data + 44)) = ships[1]->getCurrentInput();
-					*((int*)(data + 48)) = ships[2]->getCurrentInput();
+					unsigned char data[60];
+					*((double*)(data + 4)) = time;
+					*((float*)(data + 12)) = ships[0]->position.x();
+					*((float*)(data + 16)) = ships[0]->position.y();
+					*((float*)(data + 20)) = ships[0]->position.z();
+					*((float*)(data + 24)) = ships[1]->position.x();
+					*((float*)(data + 28)) = ships[1]->position.y();
+					*((float*)(data + 32)) = ships[1]->position.z();
+					*((float*)(data + 36)) = ships[2]->position.x();
+					*((float*)(data + 40)) = ships[2]->position.y();
+					*((float*)(data + 44)) = ships[2]->position.z();
+					*((int*)(data + 48)) = ships[0]->getCurrentInput();
+					*((int*)(data + 52)) = ships[1]->getCurrentInput();
+					*((int*)(data + 56)) = ships[2]->getCurrentInput();
 					for (int id = 0; id < conn->maxConns; ++id) {
 						if (conn->states[id] != Connection::Connected)
 							continue;
@@ -144,7 +154,7 @@ namespace {
 							continue;
 
 						*((int*)data) = playerStates + ((id + 1) << 8);
-						conn->send(data, 52, id, false);
+						conn->send(data, 60, id, false);
 					}
 				}
 				else {
@@ -216,10 +226,12 @@ int kore(int argc, char** argv) {
 	if (isServer) {
 		conn = new Connection(ownPort, 2);
 		conn->listen();
+		log(LogLevel::Info, "Starting server on port %i", ownPort);
 	}
 	else {
 		conn = new Connection(ownPort, 1);
 		conn->connect(connectUrl, connectPort);
+		log(LogLevel::Info, "Starting client on port %i, connecting to %s:%i", ownPort, connectUrl, connectPort);
 	}
 
 	Keyboard::the()->KeyDown = keyDown;
