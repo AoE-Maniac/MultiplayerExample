@@ -19,12 +19,14 @@ namespace {
 	const float SPEED = 100.f;
 
 	int lastId;
+	int firstIndex;
 	int currRockets;
 	Rocket* rockets;
 }
 
 void initRockets() {
 	lastId = 0;
+	firstIndex = 0;
 	currRockets = 0;
 
 	rockets = new Rocket[MAX_ROCKETS];
@@ -42,26 +44,33 @@ int fireRocket(vec3 pos) {
 	assert(currRockets < MAX_ROCKETS);
 
 	if (currRockets < MAX_ROCKETS) {
-		rockets[currRockets].id = lastId++;
-		rockets[currRockets].pos = pos;
-		rockets[currRockets].renderObject->isVisible = true;
+		int i = (firstIndex + currRockets) % MAX_ROCKETS;
+
+		rockets[i].id = lastId++;
+		rockets[i].pos = pos;
+		rockets[i].renderObject->isVisible = true;
 		++currRockets;
 
-		return rockets[currRockets - 1].id;
+		return rockets[i].id;
 	}
 	return -1;
 }
 
 void updateRockets(float deltaT) {
-	for (int i = 0; i < currRockets; ++i) {
+	int i;
+	for (int index = 0; index < currRockets; ++index) {
+		i = (firstIndex + index) % MAX_ROCKETS;
+
 		rockets[i].pos += vec3(0, SPEED * deltaT, 0);
 		rockets[i].renderObject->M = mat4::Translation(rockets[i].pos.x(), rockets[i].pos.y(), rockets[i].pos.z()) * mat4::Scale(SCALING, SCALING, SCALING);
 
 		if (rockets[i].pos.y() > 10.0f) {
-			--currRockets;
-			rockets[i].pos = rockets[currRockets].pos;
-			rockets[currRockets].renderObject->isVisible = false;
-			--i;
+			rockets[i].renderObject->isVisible = false;
+			if (index == 0) {
+				firstIndex = (firstIndex + 1) % MAX_ROCKETS;
+				--currRockets;
+				--index;
+			}
 		}
 	}
 }
