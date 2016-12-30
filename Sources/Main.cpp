@@ -108,12 +108,14 @@ namespace {
 						// Rockets fired
 						double serverTime = *((double*)(buff + 10));
 
-						updateRocket(serverTime + serverOffsetAvg - time,
+						if (updateRocket(serverTime + serverOffsetAvg - time,
 							*(buff + 1),
 							*(buff + 5),
 							vec3(*((float*)(buff + 18)),
-								 *((float*)(buff + 22)),
-								 *((float*)(buff + 26))));
+								*((float*)(buff + 22)),
+								*((float*)(buff + 26))))) {
+							ships[*(buff + 1)]->resetFire(serverTime + serverOffsetAvg - time);
+						}
 					}
 				}
 			}
@@ -205,7 +207,7 @@ namespace {
 		// TODO: Implement rocket fire and impact (reliable)
 
 		Graphics::begin();
-		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF7092BE, 1.0f);
+		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF696969, 1.0f);
 
 		renderObjects();
 

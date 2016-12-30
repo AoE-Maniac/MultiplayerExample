@@ -13,7 +13,7 @@ using namespace Kore;
 
 namespace {
 	const float SPEED = 100;
-	const float FIRERATE = 1.f;
+	const float FIRERATE = 0.1f;
 	const vec3 POS_OFFSET = vec3(25.f, 0.f, 0.f);
 	const int HISTORYSIZE = 10;
 
@@ -112,6 +112,11 @@ void Ship::applyPosition(double time, vec3 remotePosition) {
 	// For immediate correction: position += diff;
 }
 
+void Ship::resetFire(double timeOffset) {
+	fireCooldown = FIRERATE + timeOffset;
+	altFire = !altFire;
+}
+
 bool Ship::update(double deltaTime, bool isVisible, vec3 &firePos) {
 	bool firing = false;
 
@@ -124,8 +129,7 @@ bool Ship::update(double deltaTime, bool isVisible, vec3 &firePos) {
 	if (fire && fireCooldown <= 0) {
 		if (altFire) firePos = position + POS_OFFSET;
 		else firePos = position - POS_OFFSET;
-		fireCooldown = FIRERATE;
-		altFire = !altFire;
+		resetFire(0);
 		firing = true;
 	}
 

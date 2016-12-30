@@ -16,6 +16,7 @@ public:
 	int getCurrentInput();
 	void applyInput(double time, int input);
 	void applyPosition(double time, Kore::vec3 remotePosition);
+	void resetFire(double timeOffset);
 	bool update(double deltaTime, bool isVisible, Kore::vec3 &firePos);
 
 private:

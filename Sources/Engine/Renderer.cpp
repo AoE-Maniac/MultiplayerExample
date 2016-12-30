@@ -22,7 +22,7 @@ namespace {
 		Texture* texture;
 	};
 
-	const int MAX_OBJECTS = 100;
+	const int MAX_OBJECTS = 200;
 	const int MAX_MESHES = 10;
 	const int MAX_TEXTURES = 10;
 

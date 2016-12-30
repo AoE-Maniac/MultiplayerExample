@@ -18,7 +18,7 @@ namespace {
 
 	const int MAX_ROCKETS_PER_PLAYER = 30;
 	const float SCALING = 3.f;
-	const float SPEED = 100.f;
+	const float SPEED = 300.f;
 
 	int lastId[3];
 	int firstIndex[3];
@@ -65,16 +65,25 @@ int fireRocket(int player, vec3 pos) {
 	return -1;
 }
 
-void updateRocket(double timeOffset, int player, int id, vec3 pos) {
-	//assert(lastId[player] > id);
-	//if (lastId[player] <= id) return;
+bool updateRocket(double timeOffset, int player, int id, vec3 pos) {
+	if (lastId[player] > id) {
+		// Update existing rocket
+		int i = player * MAX_ROCKETS_PER_PLAYER + id % MAX_ROCKETS_PER_PLAYER;
 
-	int i = player * MAX_ROCKETS_PER_PLAYER + id % MAX_ROCKETS_PER_PLAYER;
+		assert(rockets[i].id == id);
+		if (rockets[i].id != id) return false;
 
-	//assert(rockets[i].id == id);
-	//if (rockets[i].id != id) return;
+		rockets[i].offset = rockets[i].position - (pos - vec3(0, SPEED * timeOffset, 0));
+		return false;
+	}
+	else {
+		// Fire new rocket
+		assert(lastId[player] == id);
 
-	rockets[i].offset = rockets[i].position - (pos - vec3(0, SPEED * timeOffset, 0));
+		fireRocket(player, pos - vec3(0, SPEED * timeOffset, 0));
+
+		return true;
+	}
 }
 
 void updateRockets(float deltaTime) {
@@ -96,7 +105,7 @@ void updateRockets(float deltaTime) {
 			rockets[i].renderObject->M = mat4::Translation(rockets[i].position.x(), rockets[i].position.y(), rockets[i].position.z()) *
 				mat4::Scale(SCALING, SCALING, SCALING);
 
-			if (rockets[i].position.y() > 10.0f) {
+			if (rockets[i].position.y() > 400.0f) {
 				rockets[i].renderObject->isVisible = false;
 				if (index == 0) {
 					firstIndex[player] = (firstIndex[player] + 1) % MAX_ROCKETS_PER_PLAYER;
