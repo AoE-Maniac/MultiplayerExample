@@ -123,7 +123,7 @@ namespace {
 			vec3 firePos;
 			for (int i = 0; i < 3; i++) {
 				if (ships[i]->update(deltaT, playerStates & (1 << i), firePos)) {
-					fireRocket(firePos);
+					fireRocket(firePos, i);
 				}
 			}
 
@@ -221,9 +221,9 @@ int kore(int argc, char** argv) {
 		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -10.f, 10.f));
 	
 	time = System::time();
-	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_r.png");
-	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_b.png");
-	ships[2] = new Ship(vec3( width / 3.f, -height / 2.f + 50.f, 0.f), "player_g.png");
+	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_0.png");
+	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_1.png");
+	ships[2] = new Ship(vec3( width / 3.f, -height / 2.f + 50.f, 0.f), "player_2.png");
 	
 	initRockets();
 
