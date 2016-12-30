@@ -5,5 +5,6 @@
 void initRockets();
 void deleteRockets();
 
-int fireRocket(Kore::vec3 pos, int player);
+int fireRocket(int player, Kore::vec3 pos);
+void updateRocket(double timeOffset, int player, int id, Kore::vec3 pos);
 void updateRockets(float deltaTime);

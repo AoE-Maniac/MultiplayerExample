@@ -84,23 +84,37 @@ namespace {
 					ships[id + 1]->applyInput(eventTime, *(int*)buff);
 				}
 				else {
-					playerStates = *(int*)buff;
-					localId = *((int*)buff) >> 8;
+					if (*buff == '\0') {
+						// Regular updates
+						playerStates = *(int*)(buff + 1);
+						localId = *((int*)(buff + 1)) >> 8;
 
-					double serverTime = *((double*)(buff + 4)) + conn->pings[id] / 2;
-					double serverOffset = time - serverTime;
-					serverOffsetNum++;
-					serverOffsetAvg = serverOffsetAvg + (serverOffset - serverOffsetAvg) / serverOffsetNum; // Incremental average
-					log(LogLevel::Info, "Serveroffset: %f", serverOffsetAvg);
+						double serverTime = *((double*)(buff + 5)) + conn->pings[id] / 2;
+						double serverOffset = time - serverTime;
+						serverOffsetNum++;
+						serverOffsetAvg = serverOffsetAvg + (serverOffset - serverOffsetAvg) / serverOffsetNum; // Incremental average
+						log(LogLevel::Info, "Serveroffset: %f", serverOffsetAvg);
 
-					ships[0]->applyPosition(eventTime, vec3(*((float*)(buff + 12)), *((float*)(buff + 16)), *((float*)(buff + 20))));
-					ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 24)), *((float*)(buff + 28)), *((float*)(buff + 32))));
-					ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 36)), *((float*)(buff + 40)), *((float*)(buff + 44))));
-					
-					// For opponent prediction
-					ships[0]->applyInput(eventTime,*((int*)(buff + 48)));
-					if (localId != 1) ships[1]->applyInput(eventTime, *((int*)(buff + 52)));
-					if (localId != 2) ships[2]->applyInput(eventTime, *((int*)(buff + 56)));
+						ships[0]->applyPosition(eventTime, vec3(*((float*)(buff + 13)), *((float*)(buff + 17)), *((float*)(buff + 21))));
+						ships[1]->applyPosition(eventTime, vec3(*((float*)(buff + 25)), *((float*)(buff + 29)), *((float*)(buff + 33))));
+						ships[2]->applyPosition(eventTime, vec3(*((float*)(buff + 37)), *((float*)(buff + 41)), *((float*)(buff + 45))));
+
+						// For opponent prediction
+						ships[0]->applyInput(eventTime, *((int*)(buff + 49)));
+						if (localId != 1) ships[1]->applyInput(eventTime, *((int*)(buff + 53)));
+						if (localId != 2) ships[2]->applyInput(eventTime, *((int*)(buff + 57)));
+					}
+					else if (*buff == '\1') {
+						// Rockets fired
+						double serverTime = *((double*)(buff + 10));
+
+						updateRocket(serverTime + serverOffsetAvg - time,
+							*(buff + 1),
+							*(buff + 5),
+							vec3(*((float*)(buff + 18)),
+								 *((float*)(buff + 22)),
+								 *((float*)(buff + 26))));
+					}
 				}
 			}
 		}
@@ -123,7 +137,19 @@ namespace {
 			vec3 firePos;
 			for (int i = 0; i < 3; i++) {
 				if (ships[i]->update(deltaT, playerStates & (1 << i), firePos)) {
-					fireRocket(firePos, i);
+					
+					int rId = fireRocket(i, firePos);
+					if (isServer) {
+						unsigned char data[30];
+						*           data        = '\1';
+						*          (data +  1)  = i;
+						*          (data +  5)  = rId;
+						*((double*)(data + 10)) = time;
+						*((float*) (data + 18)) = firePos.x();
+						*((float*) (data + 22)) = firePos.y();
+						*((float*) (data + 26)) = firePos.z();
+						conn->send(data, 30, -1, true);
+					}
 				}
 			}
 
@@ -135,20 +161,21 @@ namespace {
 			sinceSend -= deltaT;
 			if (sinceSend < 0) {
 				if (isServer) {
-					unsigned char data[60];
-					*((double*)(data + 4)) = time;
-					*((float*)(data + 12)) = ships[0]->position.x();
-					*((float*)(data + 16)) = ships[0]->position.y();
-					*((float*)(data + 20)) = ships[0]->position.z();
-					*((float*)(data + 24)) = ships[1]->position.x();
-					*((float*)(data + 28)) = ships[1]->position.y();
-					*((float*)(data + 32)) = ships[1]->position.z();
-					*((float*)(data + 36)) = ships[2]->position.x();
-					*((float*)(data + 40)) = ships[2]->position.y();
-					*((float*)(data + 44)) = ships[2]->position.z();
-					*((int*)(data + 48)) = ships[0]->getCurrentInput();
-					*((int*)(data + 52)) = ships[1]->getCurrentInput();
-					*((int*)(data + 56)) = ships[2]->getCurrentInput();
+					unsigned char data[61];
+					*           data        = '\0';
+					*((double*)(data +  5)) = time;
+					*((float*) (data + 13)) = ships[0]->position.x();
+					*((float*) (data + 17)) = ships[0]->position.y();
+					*((float*) (data + 21)) = ships[0]->position.z();
+					*((float*) (data + 25)) = ships[1]->position.x();
+					*((float*) (data + 29)) = ships[1]->position.y();
+					*((float*) (data + 33)) = ships[1]->position.z();
+					*((float*) (data + 37)) = ships[2]->position.x();
+					*((float*) (data + 41)) = ships[2]->position.y();
+					*((float*) (data + 45)) = ships[2]->position.z();
+					*((int*)   (data + 49)) = ships[0]->getCurrentInput();
+					*((int*)   (data + 53)) = ships[1]->getCurrentInput();
+					*((int*)   (data + 57)) = ships[2]->getCurrentInput();
 					for (int id = 0; id < conn->maxConns; ++id) {
 						if (conn->states[id] != Connection::Connected)
 							continue;
@@ -157,8 +184,8 @@ namespace {
 						if (conn->congests[id] && sendCounter != 0)
 							continue;
 
-						*((int*)data) = playerStates + ((id + 1) << 8);
-						conn->send(data, 60, id, false);
+						*((int*)(data + 1)) = playerStates + ((id + 1) << 8);
+						conn->send(data, 61, id, false);
 					}
 				}
 				else {
