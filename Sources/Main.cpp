@@ -204,7 +204,7 @@ namespace {
 			}
 		}
 
-		// TODO: Implement rocket fire and impact (reliable)
+		// TODO: Implement rocket impact (reliable)
 
 		Graphics::begin();
 		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF696969, 1.0f);
