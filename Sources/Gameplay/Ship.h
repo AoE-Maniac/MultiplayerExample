@@ -24,6 +24,9 @@ private:
 		int input;
 	};
 
+	float fireCooldown = 0.f;
+	bool altFire = false;
+
 	int historyIndex;
 	History* history;
 	Kore::vec3 offset;

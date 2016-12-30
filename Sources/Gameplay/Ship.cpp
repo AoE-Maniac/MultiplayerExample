@@ -17,9 +17,6 @@ namespace {
 	const vec3 POS_OFFSET = vec3(25.f, 0.f, 0.f);
 	const int HISTORYSIZE = 10;
 
-	float fireCooldown = 0.f;
-	bool altFire = false;
-
 	void unpackInput(int input, bool &left, bool &right, bool &fire) {
 		fire = input & 4;
 		left = input & 2;
