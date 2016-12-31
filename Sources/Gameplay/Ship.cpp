@@ -12,7 +12,7 @@
 using namespace Kore;
 
 namespace {
-	const float SPEED = 100;
+	const float SPEED = 300;
 	const float FIRERATE = 0.1f;
 	const vec3 POS_OFFSET = vec3(25.f, 0.f, 0.f);
 	const int HISTORYSIZE = 10;
