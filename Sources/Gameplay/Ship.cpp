@@ -147,7 +147,9 @@ bool Ship::update(double deltaTime, bool isVisible, vec3 &firePos) {
 	}
 
 	renderObject->isVisible = isVisible;
-	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) * mat4::RotationY(pi * 0.5f) * mat4::Scale(5, 5, 5);
+	renderObject->M = mat4::Translation(position.x(), position.y(), position.z()) *
+		mat4::RotationY(pi * (0.5f + 0.25f * left - 0.25f * right)) *
+		mat4::Scale(5, 5, 5);
 
 	return firing;
 }

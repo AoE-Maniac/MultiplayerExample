@@ -252,7 +252,7 @@ int kore(int argc, char** argv) {
 	vec3 cameraDir = vec3(0, 0, 1);
 	vec3 cameraUp = vec3(0, 1, 0);
 	initRenderer(mat4::lookAlong(cameraDir, cameraPos, cameraUp),
-		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -10.f, 10.f));
+		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -100.f, 100.f));
 	
 	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_0.png");
 	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_1.png");
