@@ -26,6 +26,11 @@ namespace {
 	int firstIndex[3];
 	int currRockets[3];
 	Rocket* rockets;
+
+	bool intersects(int index, vec3 pos, float radQuad) {
+		float dist = (rockets[index].position - pos).squareLength();
+		return dist <= radQuad;
+	}
 }
 
 void initRockets(float despawnHght) {
@@ -109,7 +114,7 @@ void updateRockets(float deltaTime) {
 			rockets[i].renderObject->M = mat4::Translation(rockets[i].position.x(), rockets[i].position.y(), rockets[i].position.z()) *
 				mat4::Scale(SCALING, SCALING, SCALING);
 
-			if (rockets[i].position.y() > despawnHeight) {
+			if (rockets[i].position.y() > despawnHeight || rockets[i].renderObject->isVisible == false) {
 				rockets[i].renderObject->isVisible = false;
 				if (index == 0) {
 					firstIndex[player] = (firstIndex[player] + 1) % MAX_ROCKETS_PER_PLAYER;
@@ -119,4 +124,22 @@ void updateRockets(float deltaTime) {
 			}
 		}
 	}
+}
+
+int checkRocketCollisions(vec3 pos, float rad) {
+	int i;
+	int collisions = 0;
+	float radQuad = ((rad + 1 * SCALING) * (rad + 1 * SCALING));
+	for (int player = 0; player < 3; ++player) {
+		for (int index = 0; index < currRockets[player]; ++index) {
+			i = player * MAX_ROCKETS_PER_PLAYER + (firstIndex[player] + index) % MAX_ROCKETS_PER_PLAYER;
+
+			if (rockets[i].renderObject->isVisible == true && intersects(i, pos, radQuad)) {
+				rockets[i].renderObject->isVisible = false;
+				collisions++;
+			}
+		}
+	}
+
+	return collisions;
 }

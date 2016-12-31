@@ -6,17 +6,20 @@
 #include <cstdio>
 #include <Kore/Math/Random.h>
 #include "../Engine/Renderer.h"
+#include "Rockets.h"
 
 using namespace Kore;
 
 namespace {
 	struct Ufo {
 		float lifeTime;
+		float hitpoints;
 		vec3 position;
 		RenderObject* renderObject;
 	};
 
 	const int MAX_UFOS = 30;
+	const float HITPOINTS_MAX = 5.f;
 	const float SCALING = 30.f;
 	const float SPEED = 50.f;
 	const float SPAWNDELAY_MIN = 1.f;
@@ -41,6 +44,7 @@ namespace {
 
 		if (currUfos < MAX_UFOS) {
 			ufos[currUfos].lifeTime = 0;
+			ufos[currUfos].hitpoints = HITPOINTS_MAX;
 			ufos[currUfos].position = pos;
 			ufos[currUfos].renderObject->isVisible = true;
 			++currUfos;
@@ -49,6 +53,8 @@ namespace {
 
 	void despawnUfo(int index) {
 		--currUfos;
+		ufos[index].lifeTime = ufos[currUfos].lifeTime;
+		ufos[index].hitpoints = ufos[currUfos].hitpoints;
 		ufos[index].position = ufos[currUfos].position;
 		ufos[currUfos].renderObject->isVisible = false;
 	}
@@ -111,7 +117,11 @@ void updateUfos(float deltaTime) {
 			mat4::RotationX(0.5f * pi) *
 			mat4::Scale(SCALING, SCALING, SCALING);
 
-		if (ufos[i].position.y() < -spawnY) {
+		// Check rocket collision
+		ufos[i].hitpoints -= checkRocketCollisions(ufos[i].position, 1.f * SCALING);
+
+		// Left screen
+		if (ufos[i].position.y() < -spawnY || ufos[i].hitpoints <= 0) {
 			despawnUfo(i);
 			--i;
 		}
