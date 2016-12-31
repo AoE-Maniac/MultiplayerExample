@@ -6,4 +6,4 @@ void initUfos(float spawnXMin, float spawnXMax, float spawnY);
 void deleteUfos();
 
 void updateUfo(double timeOffset, Kore::vec3 pos);
-void updateUfos(float deltaTime);
+bool updateUfos(float deltaTime, bool canSpawn, Kore::vec3 &spawnPos);

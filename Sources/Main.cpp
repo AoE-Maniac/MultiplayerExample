@@ -108,16 +108,25 @@ namespace {
 					}
 					else if (*buff == '\1') {
 						// Rockets fired
-						double serverTime = *((double*)(buff + 10));
+						double serverTime = *((double*)(buff + 9));
 
 						if (updateRocket(serverTime + serverOffsetAvg - time,
 							*(buff + 1),
 							*(buff + 5),
-							vec3(*((float*)(buff + 18)),
-								*((float*)(buff + 22)),
-								*((float*)(buff + 26))))) {
+							vec3(*((float*)(buff + 17)),
+								*((float*)(buff + 21)),
+								*((float*)(buff + 25))))) {
 							ships[*(buff + 1)]->resetFire(serverTime + serverOffsetAvg - time);
 						}
+					}
+					else if (*buff == '\2') {
+						// Ufo spawned
+						double serverTime = *((double*)(buff + 1));
+
+						updateUfo(serverTime + serverOffsetAvg - time,
+							vec3(*((float*)(buff + 9)),
+								*((float*)(buff + 13)),
+								*((float*)(buff + 17))));
 					}
 				}
 			}
@@ -144,21 +153,31 @@ namespace {
 					
 					int rId = fireRocket(i, firePos);
 					if (isServer) {
-						unsigned char data[30];
+						unsigned char data[29];
 						*           data        = '\1';
 						*          (data +  1)  = i;
 						*          (data +  5)  = rId;
-						*((double*)(data + 10)) = time;
-						*((float*) (data + 18)) = firePos.x();
-						*((float*) (data + 22)) = firePos.y();
-						*((float*) (data + 26)) = firePos.z();
-						conn->send(data, 30, -1, true);
+						*((double*)(data + 9)) = time;
+						*((float*) (data + 17)) = firePos.x();
+						*((float*) (data + 21)) = firePos.y();
+						*((float*) (data + 25)) = firePos.z();
+						conn->send(data, 29, -1, true);
 					}
 				}
 			}
 
 			updateRockets(deltaT);
-			updateUfos(deltaT);
+			vec3 ufoSpawnPos;
+			if (updateUfos(deltaT, isServer, ufoSpawnPos)) {
+				unsigned char data[21];
+				*data = '\2';
+				*((double*)(data + 1)) = time;
+				*((float*)(data + 9)) = ufoSpawnPos.x();
+				*((float*)(data + 13)) = ufoSpawnPos.y();
+				*((float*)(data + 17)) = ufoSpawnPos.z();
+				conn->send(data, 21, -1, true);
+			}
+
 		}
 
 		// Send data

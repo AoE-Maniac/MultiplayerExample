@@ -80,32 +80,19 @@ void deleteUfos() {
 }
 
 void updateUfo(double timeOffset, vec3 pos) {
-	/*if (lastId[player] > id) {
-		// Update existing rocket
-		int i = player * MAX_ROCKETS_PER_PLAYER + id % MAX_ROCKETS_PER_PLAYER;
-
-		assert(rockets[i].id == id);
-		if (rockets[i].id != id) return false;
-
-		rockets[i].offset = rockets[i].position - (pos - vec3(0, SPEED * timeOffset, 0));
-		return false;
-	}
-	else {
-		// Fire new rocket
-		assert(lastId[player] == id);
-
-		fireRocket(player, pos - vec3(0, SPEED * timeOffset, 0));
-
-		return true;
-	}*/
+	pos.y() -= SPEED * timeOffset;
+	spawnUfo(pos);
 }
 
-void updateUfos(float deltaTime) {
+bool updateUfos(float deltaTime, bool canSpawn, vec3 &spawnPos) {
+	bool didSpawn = false;
 	spawnDelay -= deltaTime;
 
-	if (spawnDelay <= 0) {
-		spawnUfo(vec3(getRand(spawnXMin, spawnXMax), spawnY, 0.f));
+	if (canSpawn && spawnDelay <= 0) {
+		spawnPos = vec3(getRand(spawnXMin, spawnXMax), spawnY, 0.f);
+		spawnUfo(spawnPos);
 		resetSpawnTimer();
+		didSpawn = true;
 	}
 
 	for (int i = 0; i < currUfos; ++i) {
@@ -118,6 +105,9 @@ void updateUfos(float deltaTime) {
 			mat4::Scale(SCALING, SCALING, SCALING);
 
 		// Check rocket collision
+		// Since ufos are perfectly synced to the clients and rocket position converges fast
+		// this check can be assumed to be correct enough on the client, no additional sync necessary
+		// Score should be calculated only on the client though
 		ufos[i].hitpoints -= checkRocketCollisions(ufos[i].position, 1.f * SCALING);
 
 		// Left screen
@@ -126,4 +116,6 @@ void updateUfos(float deltaTime) {
 			--i;
 		}
 	}
+
+	return didSpawn;
 }
