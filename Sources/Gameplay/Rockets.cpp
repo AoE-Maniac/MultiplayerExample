@@ -20,13 +20,17 @@ namespace {
 	const float SCALING = 3.f;
 	const float SPEED = 300.f;
 
+	float despawnHeight;
+
 	int lastId[3];
 	int firstIndex[3];
 	int currRockets[3];
 	Rocket* rockets;
 }
 
-void initRockets() {
+void initRockets(float despawnHght) {
+	despawnHeight = despawnHght;
+
 	for (int i = 0; i < 3; ++i) {
 		lastId[i] = 0;
 		firstIndex[i] = 0;
@@ -105,7 +109,7 @@ void updateRockets(float deltaTime) {
 			rockets[i].renderObject->M = mat4::Translation(rockets[i].position.x(), rockets[i].position.y(), rockets[i].position.z()) *
 				mat4::Scale(SCALING, SCALING, SCALING);
 
-			if (rockets[i].position.y() > 400.0f) {
+			if (rockets[i].position.y() > despawnHeight) {
 				rockets[i].renderObject->isVisible = false;
 				if (index == 0) {
 					firstIndex[player] = (firstIndex[player] + 1) % MAX_ROCKETS_PER_PLAYER;

@@ -4,11 +4,13 @@
 #include <Kore/System.h>
 #include <Kore/Graphics/Graphics.h>
 #include <Kore/Input/Keyboard.h>
+#include <Kore/Math/Random.h>
 #include <Kore/Network/Connection.h>
 
 #include "Engine/Renderer.h"
 #include "Gameplay/Rockets.h"
 #include "Gameplay/Ship.h"
+#include "Gameplay/Ufos.h"
 
 using namespace Kore;
 
@@ -156,6 +158,7 @@ namespace {
 			}
 
 			updateRockets(deltaT);
+			updateUfos(deltaT);
 		}
 
 		// Send data
@@ -243,18 +246,20 @@ int kore(int argc, char** argv) {
 	options.rendererOptions.antialiasing = 0;
 	Kore::System::initWindow(options);
 
+	Kore::Random::init(System::time() * 1000);
+
 	vec3 cameraPos = vec3(0, 0, -10);
 	vec3 cameraDir = vec3(0, 0, 1);
 	vec3 cameraUp = vec3(0, 1, 0);
 	initRenderer(mat4::lookAlong(cameraDir, cameraPos, cameraUp),
 		mat4::orthogonalProjection(-width / 2.f, width / 2.f, -height / 2.f, height / 2.f, -10.f, 10.f));
 	
-	time = System::time();
 	ships[0] = new Ship(vec3(-width / 3.f, -height / 2.f + 50.f, 0.f), "player_0.png");
 	ships[1] = new Ship(vec3(         0.f, -height / 2.f + 50.f, 0.f), "player_1.png");
 	ships[2] = new Ship(vec3( width / 3.f, -height / 2.f + 50.f, 0.f), "player_2.png");
 	
-	initRockets();
+	initRockets(height / 2.f + 50.f);
+	initUfos(-width / 2.f + 50.f, width / 2.f - 50.f, height / 2.f + 50.f);
 
 	if (isServer) {
 		conn = new Connection(ownPort, 2);
@@ -269,6 +274,8 @@ int kore(int argc, char** argv) {
 
 	Keyboard::the()->KeyDown = keyDown;
 	Keyboard::the()->KeyUp = keyUp;
+
+	time = System::time();
 
 	Kore::System::setCallback(update);
 	Kore::System::start();

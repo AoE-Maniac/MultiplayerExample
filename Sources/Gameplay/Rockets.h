@@ -2,7 +2,7 @@
 
 #include <Kore/Math/Vector.h>
 
-void initRockets();
+void initRockets(float despawnHeight);
 void deleteRockets();
 
 int fireRocket(int player, Kore::vec3 pos);
