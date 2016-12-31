@@ -226,8 +226,6 @@ namespace {
 			}
 		}
 
-		// TODO: Implement rocket impact (reliable)
-
 		Graphics::begin();
 		Graphics::clear(Graphics::ClearColorFlag | Graphics::ClearDepthFlag, 0xFF202020, 1.0f);
 
