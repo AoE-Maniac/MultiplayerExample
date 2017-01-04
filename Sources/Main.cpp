@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include <stdlib.h>
+
 #include <Kore/Log.h>
 #include <Kore/System.h>
 #include <Kore/Graphics/Graphics.h>
